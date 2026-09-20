@@ -1,65 +1,72 @@
 ﻿using UnityEngine;
+using UnityUtility.Audio;
 using System.Collections;
 
-namespace UnityUtility.Audio
+public class SoundEmitter : MonoBehaviour
 {
-    [RequireComponent(typeof(AudioSource))]
-    public class SoundEmitter : MonoBehaviour
+    public SoundData data { get; private set; }
+
+    private AudioSource audioSource;
+    private Coroutine coroutine;
+    private bool isReleased = true;
+
+    private void Awake()
     {
-        public SoundData data { get; private set; }
+        audioSource = GetComponent<AudioSource>();
+        if (!audioSource)
+            audioSource = gameObject.AddComponent<AudioSource>();
+    }
 
-        private AudioSource audioSource;
-        private Coroutine coroutine;
+    public void Play()
+    {
+        if (coroutine != null)
+            StopCoroutine(coroutine);
 
-        private void Awake()
+        audioSource.Play();
+        coroutine = StartCoroutine(WaitForSoundToEnd());
+    }
+
+    public void Stop()
+    {
+        if (coroutine != null)
         {
-            audioSource = GetComponent<AudioSource>();
-            if (!audioSource)
-                audioSource = gameObject.AddComponent<AudioSource>();
+            StopCoroutine(coroutine);
+            coroutine = null;
         }
 
-        public void Play()
-        {
-            if (coroutine != null)
-                StopCoroutine(coroutine);
+        audioSource.Stop();
+        Release();
+    }
 
-            audioSource.Play();
-            coroutine = StartCoroutine(WaitForSoundToEnd());
-        }
+    IEnumerator WaitForSoundToEnd()
+    {
+        yield return new WaitWhile(() => audioSource.isPlaying);
+        coroutine = null;
+        Release();
+    }
 
-        public void Stop()
-        {
-            if (coroutine != null)
-            {
-                StopCoroutine(coroutine);
-                coroutine = null;
-            }
+    private void Release()
+    {
+        if (isReleased) return;
+        isReleased = true;
+        SoundManager.Instance.ReturnToPool(this);
+    }
 
-            audioSource.Stop();
-            SoundManager.Instance.ReturnToPool(this);
-        }
+    public void Initialize(SoundData newData)
+    {
+        isReleased = false;
 
-        IEnumerator WaitForSoundToEnd()
-        {
-            yield return new WaitWhile(() => audioSource.isPlaying);
-            SoundManager.Instance.ReturnToPool(this);
-        }
+        data = newData;
+        audioSource.clip = newData.clip;
+        audioSource.loop = newData.loop;
+        audioSource.pitch = newData.pitch;
+        audioSource.volume = newData.volume;
+        audioSource.playOnAwake = newData.playOnAwake;
+        audioSource.outputAudioMixerGroup = newData.group;
+    }
 
-        public void Initialize(SoundData newData)
-        {
-            data = newData;
-
-            audioSource.clip = newData.clip;
-            audioSource.loop = newData.loop;
-            audioSource.pitch = newData.pitch;
-            audioSource.volume = newData.volume;
-            audioSource.playOnAwake = newData.playOnAwake;
-            audioSource.outputAudioMixerGroup = newData.group;
-        }
-
-        public void WithRandomPitch(float min = -0.05f, float max = 0.05f)
-        {
-            audioSource.pitch += Random.Range(min, max);
-        }
+    public void WithRandomPitch(float min = -0.05f, float max = 0.05f)
+    {
+        audioSource.pitch += Random.Range(min, max);
     }
 }
