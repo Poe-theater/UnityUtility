@@ -1,11 +1,11 @@
 {
   "name": "com.redadoo.unityutility",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "displayName": "UnityUtility",
   "description": "assortment of utility scripts for Unity",
   "unity": "6000.2",
   "dependencies": {
-    "com.unity.cinemachine": "3.1.5"
+    "com.unity.cinemachine": "6.6.0"
   },
   "author": {
     "name": "Redadoo"
