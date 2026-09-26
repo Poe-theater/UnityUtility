@@ -358,17 +358,29 @@ namespace UnityUtility.DataPersistence
 
         private List<IDataPersistence<TGameData>> FindAllDataPersistenceObjects()
         {
-            // FindObjectsInactive.Include è necessario: senza, un IDataPersistence
-            // che vive su un pannello UI chiuso non riceve mai LoadData e non
-            // viene mai salvato, in modo silenzioso e dipendente da cosa è aperto
-            // in quel momento.
-            //
-            // L'overload con FindObjectsSortMode è deprecato: l'ordinamento non
-            // serve, i dati vengono distribuiti a tutti gli oggetti trovati.
-            return UnityEngine.Object
-                .FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include)
-                .OfType<IDataPersistence<TGameData>>()
-                .ToList();
+            var result = new List<IDataPersistence<TGameData>>();
+
+            // Resources.FindObjectsOfTypeAll include per natura gli oggetti inattivi
+            // e non è deprecata in nessuna versione: è l'unico modo per avere lo
+            // stesso comportamento su Unity 6.3 e 6.6 senza API condizionali.
+            foreach (var mb in Resources.FindObjectsOfTypeAll<MonoBehaviour>())
+            {
+                if (mb == null || mb is not IDataPersistence<TGameData> persistence)
+                    continue;
+
+                // In editor restituisce anche prefab e asset caricati: teniamo solo
+                // ciò che appartiene davvero a una scena. Gli oggetti in
+                // DontDestroyOnLoad hanno una scene valida, quindi passano.
+                if (!mb.gameObject.scene.IsValid())
+                    continue;
+
+                if (mb.hideFlags != HideFlags.None)
+                    continue;
+
+                result.Add(persistence);
+            }
+
+            return result;
         }
 
         #endregion
